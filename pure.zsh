@@ -170,6 +170,16 @@ prompt_pure_preprompt_render() {
 	typeset -g prompt_pure_last_prompt=$expanded_prompt
 }
 
+prompt_pure_pwd() {
+	if git rev-parse --is-inside-work-tree &>/dev/null; then
+		local git_root="$(git rev-parse --show-toplevel)"
+		local base_dir="$(dirname "$git_root")"
+		print ${PWD/#$base_dir/\#}
+	else
+		print '%~'
+	fi
+}
+
 prompt_pure_precmd() {
 	setopt localoptions noshwordsplit
 
@@ -189,8 +199,10 @@ prompt_pure_precmd() {
 	# Check if we should display the virtual env (psvar[20]).
 	psvar[20]=
 	# Check if a Conda environment is active and display its name.
-	if [[ -n $CONDA_DEFAULT_ENV ]]; then
-		psvar[20]="${CONDA_DEFAULT_ENV//[$'\t\r\n']}"
+	if zstyle -T ":prompt:pure:environment:conda" show; then
+		if [[ -n $CONDA_DEFAULT_ENV ]]; then
+			psvar[20]="${CONDA_DEFAULT_ENV//[$'\t\r\n']}"
+		fi
 	fi
 	# When VIRTUAL_ENV_DISABLE_PROMPT is empty, it was unset by the user and
 	# Pure should take back control.
@@ -864,7 +876,7 @@ prompt_pure_setup() {
 	# Preprompt line: each %(NV..) section only renders when its psvar is non-empty.
 	PROMPT='%(12V.%F{$prompt_pure_colors[suspended_jobs]}%12v%f .)'
 	PROMPT+='%(13V.%F{$prompt_pure_colors['"${prompt_pure_state[user_color]:-user}"']}%n%f%F{$prompt_pure_colors[host]}@%m%f .)'
-	PROMPT+='%F{${prompt_pure_colors[path]}}%~%f'
+	PROMPT+='%F{${prompt_pure_colors[path]}}$(prompt_pure_pwd)%f'
 	PROMPT+='%(14V. %F{${prompt_pure_git_branch_color}}%14v%(15V.%F{$prompt_pure_colors[git:dirty]}%15v.)%f.)'
 	PROMPT+='%(16V. %F{$prompt_pure_colors[git:action]}%16v%f.)'
 	PROMPT+='%(17V. %F{$prompt_pure_colors[git:arrow]}%17v%f.)'
