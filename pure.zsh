@@ -140,7 +140,7 @@ prompt_pure_preprompt_render() {
 	[[ -n $prompt_pure_state[username] ]] && preprompt_parts+=($prompt_pure_state[username])
 
 	# Set the path.
-	preprompt_parts+=('%F{${prompt_pure_colors[path]}}%~%f')
+	preprompt_parts+=('%F{${prompt_pure_colors[path]}}$(prompt_pure_pwd)%f')
 
 	# Git branch and dirty status info.
 	typeset -gA prompt_pure_vcs_info
@@ -197,6 +197,16 @@ prompt_pure_preprompt_render() {
 	typeset -g prompt_pure_last_prompt=$expanded_prompt
 }
 
+prompt_pure_pwd() {
+	if git rev-parse --is-inside-work-tree &>/dev/null; then
+		local git_root="$(git rev-parse --show-toplevel)"
+		local base_dir="$(dirname "$git_root")"
+		print ${PWD/#$base_dir/\#}
+	else
+		print '%~'
+	fi
+}
+
 prompt_pure_precmd() {
 	setopt localoptions noshwordsplit
 
@@ -217,8 +227,10 @@ prompt_pure_precmd() {
 	# index of psvar (12) here to avoid collisions with user defined entries.
 	psvar[12]=
 	# Check if a Conda environment is active and display its name.
-	if [[ -n $CONDA_DEFAULT_ENV ]]; then
-		psvar[12]="${CONDA_DEFAULT_ENV//[$'\t\r\n']}"
+	if zstyle -T ":prompt:pure:environment:conda" show; then
+		if [[ -n $CONDA_DEFAULT_ENV ]]; then
+			psvar[12]="${CONDA_DEFAULT_ENV//[$'\t\r\n']}"
+		fi
 	fi
 	# When VIRTUAL_ENV_DISABLE_PROMPT is empty, it was unset by the user and
 	# Pure should take back control.
